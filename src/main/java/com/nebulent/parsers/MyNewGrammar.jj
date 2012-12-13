@@ -1,0 +1,114 @@
+/**
+ * JavaCC template file created by SF JavaCC plugin 1.5.17+ wizard for JavaCC 1.5.0+
+ */options{  JDK_VERSION = "1.6";  static = true;}PARSER_BEGIN(QueryExpressionParser)package com.nebulent.parsers;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import com.amazonaws.services.dynamodb.model.AttributeValue;
+import com.amazonaws.services.dynamodb.model.ComparisonOperator;
+import com.amazonaws.services.dynamodb.model.Condition;
+
+public class QueryExpressionParser{  public static void main(String args []) throws ParseException  {    QueryExpressionParser parser = new QueryExpressionParser(System.in);
+    Condition condition = parser.queryExpresssion();    System.out.println("Parsing Successful"+condition.toString());  }}PARSER_END(QueryExpressionParser)SKIP :{  " "}TOKEN :{
+  < EQ : "eq" >
+| < NE : "ne" >
+| < LT : "lt" >
+| < LE : "le" >
+| < GT : "gt" >
+| < GE : "ge" >
+| < IN : "in" >
+| < BETWEEN : "between" >| < NUMBER : (< DIGIT >)+ >| < #DIGIT : [ "0"-"9" ] >
+| < WORD : (< LETTER >)+ >
+| < #LETTER : [ "a"-"z","A"-"Z" ] >
+| < HASH : [ "a"-"z","A"-"Z" ] ([ "a"-"z","A"-"Z", "-" ])+ >}Condition queryExpresssion() :{
+  Condition condition = new Condition();
+  ComparisonOperator operator;
+  List<AttributeValue> attr;
+}{
+  operator = operator() "(" attr = attributes() ")"  {
+    return condition.withComparisonOperator(operator).withAttributeValueList(attr);  }
+}
+ComparisonOperator operator() :{ComparisonOperator operator;}{
+  < EQ > {
+    return ComparisonOperator.EQ;  }
+  |< NE > {    return ComparisonOperator.NE;  }
+  |< LT>  {
+    return ComparisonOperator.LT;  }
+  |< LE>  {
+    return ComparisonOperator.LE;
+  }
+  |< GT >  {
+    return ComparisonOperator.GT;  }
+  |< GE >
+  {
+    return ComparisonOperator.GE;
+  }
+  |< IN > {
+    return ComparisonOperator.IN;
+  }
+  |< BETWEEN > {
+    return ComparisonOperator.BETWEEN;
+  }
+}
+
+List<AttributeValue> attributes() :
+{
+  List<AttributeValue> attributes;}
+{
+  attributes = numbers()  {
+    return attributes;  }
+  |attributes = words()  {
+    return attributes();  }
+}
+
+List<AttributeValue> numbers() :
+{
+  List<AttributeValue> attr = new ArrayList<AttributeValue>();
+  String number;
+}
+{
+  number = getNumber()  {
+    attr.add(new AttributeValue().withN(number));  }
+  (", " number = getNumber()
+  {
+    attr.add(new AttributeValue().withN(number));
+  }  )*  {
+    return attr;  }}
+
+List<AttributeValue> words() :
+{
+  List<AttributeValue> attr = new ArrayList<AttributeValue>();
+  String word;
+}
+{
+  word = getWord()
+  {
+    attr.add(new AttributeValue().withS(word));
+  }
+  (", " word = getWord()
+  {
+    attr.add(new AttributeValue().withS(word));
+  })*
+  {
+    return attr;
+  }
+}
+
+String getNumber():
+{Token t;}
+{
+  t = < NUMBER >
+  {
+    return t.image;  }
+}
+
+String getWord():
+{Token t;}
+{
+  t = < HASH >
+  {
+    return t.image;
+  }
+}

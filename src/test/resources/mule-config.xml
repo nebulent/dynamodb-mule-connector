@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:naws="http://www.mulesoft.org/schema/mule/nebulent-dynamodb"
+	xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/nebulent-dynamodb http://www.mulesoft.org/schema/mule/nebulent-dynamodb/1.0/mule-nebulent-dynamodb.xsd">
+
+	<naws:config accessKey="AKIAJVPOCFA5EG2J224A"
+		secretKey="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" />
+
+	<flow name="loadTestFlow">
+		<logger message="Flow Started with payload : #[payload]" level="INFO" />
+		<naws:load key="#[payload]" rangeKey="4"
+			recordType="com.nebulent.dynamo.model.DataModel" />
+		<logger message="#[payload.class] -- #[payload]" level="INFO" />
+	</flow>
+
+	<flow name="queryTestFlow">
+		<logger message="Flow Started with payload : #[payload]" level="INFO" />
+		<naws:query
+			expression="hashKey:6cea519d-8e3e-4559-842c-d8302eb46446, rangeKey:eq(4)"
+			startKey-ref="#[payload]" limit="1" recordType="com.nebulent.dynamo.model.DataModel" />
+		<logger message="#[payload.class] -- #[payload]" level="INFO" />
+	</flow>
+
+	<flow name="scanTestFlow">
+		<logger message="Flow Started with payload : #[payload]" level="INFO" />
+		<naws:scan expression="rangeID:eq(1)" limit="1"
+			recordType="com.nebulent.dynamo.model.DataModel" />
+		<logger message="#[payload.class] -- #[payload]" level="INFO" />
+	</flow>
+
+	<flow name="countTestFlow">
+		<logger message="Flow Started with payload : #[payload]" level="INFO" />
+		<naws:count expression="hashKey:#[payload], rangeKey:eq(4)"
+			recordType="com.nebulent.dynamo.model.DataModel" />
+		<logger message="#[payload.class] -- #[payload]" level="INFO" />
+	</flow>
+
+	<flow name="saveTestFlow">
+		<logger message="Flow Started with payload : #[payload]" level="INFO" />
+		<naws:save />
+		<logger message="#[payload.class] -- #[payload]" level="INFO" />
+	</flow>
+
+	<flow name="deleteTestFlow">
+		<logger message="Flow Started with payload : #[payload]" level="INFO" />
+		<naws:delete />
+		<logger message="#[payload.class] -- #[payload]" level="INFO" />
+	</flow>
+
+	<!-- <flow name="marshalTestFlow"> <logger message="Flow Started with payload 
+		: #[payload]" level="INFO" /> <naws:marshal-into-objects type="com.nebulent.dynamo.model.DataModel" 
+		item-attributes="#[payload]" /> <logger message="#[payload.class] #[payload]" 
+		level="INFO" /> </flow> -->
+
+</mule>

@@ -1,0 +1,200 @@
+/**
+ * JavaCC template file created by SF JavaCC plugin 1.5.17+ wizard for JavaCC 1.5.0+
+ */options{  JDK_VERSION = "1.6";  static = false;}PARSER_BEGIN(ExpressionParser)package com.nebulent.parsers;
+
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.Console;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.amazonaws.services.dynamodb.datamodeling.DynamoDBQueryExpression;
+import com.amazonaws.services.dynamodb.datamodeling.DynamoDBScanExpression;
+import com.amazonaws.services.dynamodb.model.AttributeValue;
+import com.amazonaws.services.dynamodb.model.ComparisonOperator;
+import com.amazonaws.services.dynamodb.model.Condition;
+
+public class ExpressionParser{
+
+ DynamoDBQueryExpression query = new DynamoDBQueryExpression(new AttributeValue());
+ DynamoDBScanExpression scan = new DynamoDBScanExpression();
+  	public static DynamoDBQueryExpression asQuery(String expression) throws ParseException	{		ExpressionParser parser = new ExpressionParser(new ByteArrayInputStream(expression.getBytes()));
+		return parser.parseQueryExpression();
+	}
+
+	public static DynamoDBScanExpression asScanExpression(String expression) throws ParseException	{		ExpressionParser parser = new ExpressionParser(new ByteArrayInputStream(expression.getBytes()));
+		return parser.parseScanExpression();
+	}
+  }PARSER_END(ExpressionParser)SKIP :{  " "| "\t"}TOKEN : /* OPERATORS */{
+  < EQ : "eq" |"EQ"|"==" >
+| < NE : "ne" |"NE"|"!=" >
+| < LT : "lt" |"LT"|"<" >
+| < LE : "le" |"LE"|"<=" >
+| < GT : "gt" |"GT"|">" >
+| < GE : "ge" |"GE"|">=" >
+| < IN : "in" |"IN" >
+| < BETWEEN : "between" |"BETWEEN">| < SEPARATOR : ":" >| < COMMA : "," >
+}TOKEN :{  < HASHKEY : "hashKey"|"HashKey" >
+| < RANGEKEY : "rangeKey"|"RangeKey" >
+| < SIF : "scanIndexForward"|"ScanIndexForward" >
+| < CONSISTENT : "consistent"|"Consistent" >
+| < TRUE : "true"|"TRUE" >
+| < FALSE : "false"|"FALSE" >
+| < HASH : [ "a"-"z","A"-"Z","0"-"9" ] ([ "a"-"z","A"-"Z","0"-"9", "-" ])+ >
+| < NUMBER : (< DIGIT >)+ ("." < DIGIT >)* >
+| < #LETTER : [ "a"-"z","A"-"Z" ] >| < #DIGIT : [ "0"-"9" ] >}DynamoDBQueryExpression parseQueryExpression() :{ query = new DynamoDBQueryExpression( new AttributeValue());}{	ExpressionParameter() (< COMMA > ExpressionParameter())+
+	< EOF >
+	{
+	  return query;	}}
+
+DynamoDBScanExpression parseScanExpression():{
+  scan = new DynamoDBScanExpression();}{
+  scanAttribute()
+  ( < COMMA >    scanAttribute()
+  )*
+  < EOF >  {
+    return scan;  }}
+
+void ExpressionParameter():
+{}{
+  hashKey()
+  |rangeKey()
+  |SIF()
+  |consistent()
+}
+
+void scanAttribute():{
+  String name;
+  Condition condition;}{
+  name = getName() < SEPARATOR >
+  condition = condition()  {
+    scan.addFilterCondition(name, condition);  }}
+
+void consistent():{
+}
+{
+  < CONSISTENT >
+  < SEPARATOR >
+  (
+    < TRUE >
+  {
+    query.withConsistentRead(true);
+  }|< FALSE >
+  {
+    query.withConsistentRead(false);
+  })
+}
+
+void SIF():{
+}
+{
+  < SIF >
+  < SEPARATOR >
+  (    < TRUE >  {
+    query.withScanIndexForward(true);  }|< FALSE >  {
+    query.withScanIndexForward(false);  })
+}
+
+void rangeKey():{
+  Condition condition;}{
+  < RANGEKEY >  < SEPARATOR >
+  condition = condition()  {
+    query.withRangeKeyCondition(condition);
+  }
+}
+
+void hashKey():{
+  AttributeValue value;
+}{
+  < HASHKEY > < SEPARATOR >
+  value = getValue()  {
+    query.withHashKeyValue(value);  }
+}
+
+Condition condition():{
+  Condition condition = new Condition();
+  ComparisonOperator operator;
+  List<AttributeValue> arguments;}{
+  operator = operator() "(" arguments = params() ")"
+  {
+    return condition.withComparisonOperator(operator).withAttributeValueList(arguments);  }
+}
+
+List<AttributeValue> params():{
+  List<AttributeValue> args = new ArrayList<AttributeValue>();
+  List<AttributeValue> tt;
+  AttributeValue arg;}{
+      arg = getValue()  {
+    args.add(arg);  }( < COMMA > tt = params()  {
+    args.addAll(tt);
+  }
+  )*  {
+    return args;  }}
+
+ComparisonOperator operator() :
+{}
+{
+  < EQ > {
+    return ComparisonOperator.EQ;
+  }
+  |< NE > {
+    return ComparisonOperator.NE;
+  }
+  |< LT>
+  {
+    return ComparisonOperator.LT;
+  }
+  |< LE>
+  {
+    return ComparisonOperator.LE;
+  }
+  |< GT >
+  {
+    return ComparisonOperator.GT;
+  }
+  |< GE >
+  {
+    return ComparisonOperator.GE;
+  }
+  |< IN > {
+    return ComparisonOperator.IN;
+  }
+  |< BETWEEN > {
+    return ComparisonOperator.BETWEEN;
+  }
+}
+
+String getName():{
+  Token t;}{
+  (   t = < HASH >
+  |t =< HASHKEY >
+  |t =< RANGEKEY >
+  |t =< SIF >
+  |t =< CONSISTENT >
+  )
+  {
+    return t.image;  }}
+
+AttributeValue getValue():{
+  AttributeValue value = new AttributeValue();
+}{
+  (   value = getHash()
+  |value = getNumber()
+  )  {
+    return value;  }}
+
+AttributeValue getHash():{
+  Token t;}{
+  t = < HASH >  {
+    return new AttributeValue().withS(t.image);  }}
+
+AttributeValue getNumber():{
+  Token t;}{
+  t = < NUMBER >
+  {
+    return new AttributeValue().withN(t.image);
+  }}
+

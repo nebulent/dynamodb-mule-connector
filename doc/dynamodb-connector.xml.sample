@@ -1,0 +1,31 @@
+<!-- BEGIN_INCLUDE(nebulent-dynamodb:load) -->
+    <nebulent-dynamodb:load key="AWS record key" rangeKey="rangeKey" recordType="com.nebulent.dynamo.model.DataModel" />
+<!-- END_INCLUDE(nebulent-dynamodb:load) -->
+
+<!-- BEGIN_INCLUDE(nebulent-dynamodb:batch-load) -->
+    <nebulent-dynamodb:batch-load itemsToGet="new HashMap<Class<?>, List<KeyPair>>()" />
+<!-- END_INCLUDE(nebulent-dynamodb:batch-load) -->
+
+<!-- BEGIN_INCLUDE(nebulent-dynamodb:query) -->
+    <nebulent-dynamodb:query startKey-ref="AWS record key" limit="" recordType="" expression="" />
+<!-- END_INCLUDE(nebulent-dynamodb:query) -->
+
+<!-- BEGIN_INCLUDE(nebulent-dynamodb:count) -->
+    <nebulent-dynamodb:count recordType="" expression="" />
+<!-- END_INCLUDE(nebulent-dynamodb:count) -->
+
+<!-- BEGIN_INCLUDE(nebulent-dynamodb:scan) -->
+    <nebulent-dynamodb:scan startKey-ref="AWS record key" limit="" recordType="" expression="" />
+<!-- END_INCLUDE(nebulent-dynamodb:scan) -->
+
+<!-- BEGIN_INCLUDE(nebulent-dynamodb:save) -->
+    <nebulent-dynamodb:save />
+<!-- END_INCLUDE(nebulent-dynamodb:save) -->
+
+<!-- BEGIN_INCLUDE(nebulent-dynamodb:delete) -->
+    <nebulent-dynamodb:delete-endpoint />
+<!-- END_INCLUDE(nebulent-dynamodb:delete) -->
+
+<!-- BEGIN_INCLUDE(nebulent-dynamodb:marshal-into-objects) -->
+    <nebulent-dynamodb:marshal-into-objects type="" itemAttributes="" />
+<!-- END_INCLUDE(nebulent-dynamodb:marshal-into-objects) -->
