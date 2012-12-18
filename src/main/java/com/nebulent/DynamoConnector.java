@@ -3,8 +3,11 @@
  */
 package com.nebulent;
 
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -28,6 +31,7 @@ import com.amazonaws.services.dynamodb.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMappingException;
+import com.amazonaws.services.dynamodb.datamodeling.DynamoDBTable;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig.ConsistentReads;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBScanExpression;
@@ -35,6 +39,7 @@ import com.amazonaws.services.dynamodb.datamodeling.KeyPair;
 import com.amazonaws.services.dynamodb.model.AttributeValue;
 import com.amazonaws.services.dynamodb.model.Condition;
 import com.amazonaws.services.dynamodb.model.Key;
+import com.amazonaws.services.dynamodb.model.PutItemRequest;
 import com.nebulent.parsers.ExpressionParser;
 import com.nebulent.parsers.ParseException;
 
@@ -49,6 +54,8 @@ public class DynamoConnector {
 	private static Log log = LogFactory.getLog(DynamoConnector.class);
 
 	private DynamoDBMapper mapper;
+
+	private AmazonDynamoDBClient client;
 
 	/**
 	 * Configurable
@@ -99,8 +106,7 @@ public class DynamoConnector {
 		AWSCredentials credentials = new BasicAWSCredentials(accessKey,
 				secretKey);
 		ClientConfiguration config = new ClientConfiguration();
-		AmazonDynamoDBClient client = new AmazonDynamoDBClient(credentials,
-				config);
+		client = new AmazonDynamoDBClient(credentials, config);
 		mapper = new DynamoDBMapper(client, getMapperConfig());
 
 	}
@@ -111,6 +117,7 @@ public class DynamoConnector {
 	@Disconnect
 	public void disconnect() {
 		mapper = null;
+		client = null;
 	}
 
 	/**
@@ -118,7 +125,7 @@ public class DynamoConnector {
 	 */
 	@ValidateConnection
 	public boolean isConnected() {
-		return mapper != null;
+		return (mapper != null && client != null);
 	}
 
 	/**
@@ -169,11 +176,20 @@ public class DynamoConnector {
 	 * @throws Exception
 	 */
 	// :TODO fix Type issue
-	/*
-	 * @Processor public Object batchLoad(Map<Class<?>, List<KeyPair>>
-	 * itemsToGet) throws ClassNotFoundException { return
-	 * mapper.batchLoad(itemsToGet); }
-	 */
+
+	@Processor
+	public Object batchLoad(@Payload Map<String, List<KeyPair>> itemsToGet)
+			throws ClassNotFoundException {
+		Map<Class<?>, List<KeyPair>> batchLoad = new HashMap<Class<?>, List<KeyPair>>();
+		Iterator it = itemsToGet.entrySet().iterator();
+		while (it.hasNext()) {
+			Map.Entry<String, List<KeyPair>> entry = (Entry<String, List<KeyPair>>) it
+					.next();
+			Class tableClass = Class.forName(entry.getKey());
+			batchLoad.put(tableClass, entry.getValue());
+		}
+		return mapper.batchLoad(batchLoad);
+	}
 
 	/**
 	 * Custom processor
@@ -214,19 +230,28 @@ public class DynamoConnector {
 	 * 
 	 * @param recordType
 	 *            reference to the record model class anotated with \@DynamoDBTable
-	 * @param expression
+	 * @param scanExpression
 	 *            query expression
+	 * @param queryExpression
+	 *            scan expression
 	 * @return Object
 	 * @throws ClassNotFoundException
 	 * @throws ParseException
 	 * @throws Exception
 	 */
 	@Processor
-	public Integer count(String recordType, String expression)
+	public Integer count(String recordType,@Optional String scanExpression,@Optional String queryExpression)
 			throws ClassNotFoundException, ParseException {
 		Class classToBeLoaded = Class.forName(recordType);
-		DynamoDBQueryExpression query = ExpressionParser.asQuery(expression);
-		return mapper.count(classToBeLoaded, query);
+		if(queryExpression!=null) {
+			DynamoDBQueryExpression query = ExpressionParser.asQuery(queryExpression);
+			return mapper.count(classToBeLoaded, query);
+		}
+		if(scanExpression!=null) {
+			DynamoDBScanExpression scan = ExpressionParser.asScanExpression(scanExpression);
+			return mapper.count(classToBeLoaded, scan);
+		}
+		throw new RuntimeException("Missing Parameter");
 	}
 
 	/**
@@ -275,9 +300,29 @@ public class DynamoConnector {
 	 * @throws Exception
 	 */
 	@Processor
-	public void save(@Optional @Payload Object payload) {
+	public void save(@Payload Object payload) {
 		try {
 			mapper.save(payload);
+		} catch (DynamoDBMappingException ex) {
+			log.error("Payload is not of required type or the DataModel class is Malformed");
+			throw new RuntimeException(ex.getMessage());
+		}
+	}
+
+	/**
+	 * Custom processor
+	 * 
+	 * {@sample.xml ../../../doc/dynamodb-connector.xml.sample
+	 * nebulent-dynamodb:batch-save}
+	 * 
+	 * @param payload
+	 *            the MuleMessage payload to be stored
+	 * @throws Exception
+	 */
+	@Processor
+	public void batchSave(@Payload List<?> payload) {
+		try {
+			mapper.batchSave(payload);
 		} catch (DynamoDBMappingException ex) {
 			log.error("Payload is not of required type or the DataModel class is Malformed");
 			throw new RuntimeException(ex.getMessage());
@@ -297,9 +342,46 @@ public class DynamoConnector {
 	 * @throws Exception
 	 */
 	@Processor
-	public Object delete(@Optional @Payload Object payload) {
+	public Object delete(@Payload Object payload) {
 		mapper.delete(payload);
 		return payload;
+	}
+
+	/**
+	 * Custom processor
+	 * 
+	 * {@sample.xml ../../../doc/dynamodb-connector.xml.sample
+	 * nebulent-dynamodb:batch-delete}
+	 * 
+	 * @param payload
+	 *            the MuleMessage payload to be stored
+	 * @return PasskeyMessage
+	 * @throws ClassNotFoundException
+	 * @throws Exception
+	 */
+	@Processor
+	public List<?> batchDelete(@Payload List<?> payload) {
+		mapper.batchDelete(payload);
+		return payload;
+	}
+
+	/**
+	 * Custom processor
+	 * 
+	 * {@sample.xml ../../../doc/dynamodb-connector.xml.sample
+	 * nebulent-dynamodb:batch-save}
+	 * 
+	 * @param write
+	 *            the items to store
+	 * @param delete
+	 *            the items to delete
+	 * @throws Exception
+	 */
+	@Processor
+	public void batchWrite(Object write, Object delete) {
+		System.out.println(write.toString());
+		System.out.println(delete.toString());
+		mapper.batchWrite((List<?>)write, (List<?>)delete);
 	}
 
 	/**
@@ -310,17 +392,18 @@ public class DynamoConnector {
 	 * 
 	 * @param type
 	 *            the type of object the attributes will be compress to
-	 * @param itemAttributes
+	 * @param attributes
 	 *            the list of atributes and its values
 	 * @return PasskeyMessage
 	 * @throws ClassNotFoundException
 	 * @throws Exception
 	 */
 	@Processor
-	public Object marshallIntoObjects(String type,
-			List<java.util.Map<java.lang.String, AttributeValue>> itemAttributes) throws ClassNotFoundException {
+	public Object marshallIntoObjects(String type, Object attributes)
+			throws ClassNotFoundException {
 		Class<?> clazz = Class.forName(type);
-		return mapper.marshallIntoObjects(clazz, itemAttributes);
+		
+		return mapper.marshallIntoObjects(clazz,(List<Map<String, AttributeValue>>) attributes);
 	}
 
 }

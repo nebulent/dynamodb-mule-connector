@@ -3,7 +3,7 @@
 <!-- END_INCLUDE(nebulent-dynamodb:load) -->
 
 <!-- BEGIN_INCLUDE(nebulent-dynamodb:batch-load) -->
-    <nebulent-dynamodb:batch-load itemsToGet="new HashMap<Class<?>, List<KeyPair>>()" />
+    <nebulent-dynamodb:batch-load />
 <!-- END_INCLUDE(nebulent-dynamodb:batch-load) -->
 
 <!-- BEGIN_INCLUDE(nebulent-dynamodb:query) -->
@@ -11,7 +11,7 @@
 <!-- END_INCLUDE(nebulent-dynamodb:query) -->
 
 <!-- BEGIN_INCLUDE(nebulent-dynamodb:count) -->
-    <nebulent-dynamodb:count recordType="" expression="" />
+    <nebulent-dynamodb:count recordType="" scanExpression="" />
 <!-- END_INCLUDE(nebulent-dynamodb:count) -->
 
 <!-- BEGIN_INCLUDE(nebulent-dynamodb:scan) -->
@@ -22,10 +22,22 @@
     <nebulent-dynamodb:save />
 <!-- END_INCLUDE(nebulent-dynamodb:save) -->
 
+<!-- BEGIN_INCLUDE(nebulent-dynamodb:batch-save) -->
+    <nebulent-dynamodb:batch-save />
+<!-- END_INCLUDE(nebulent-dynamodb:batch-save) -->
+
 <!-- BEGIN_INCLUDE(nebulent-dynamodb:delete) -->
-    <nebulent-dynamodb:delete-endpoint />
+    <nebulent-dynamodb:delete />
 <!-- END_INCLUDE(nebulent-dynamodb:delete) -->
 
+<!-- BEGIN_INCLUDE(nebulent-dynamodb:batch-delete) -->
+    <nebulent-dynamodb:batch-delete />
+<!-- END_INCLUDE(nebulent-dynamodb:batch-delete) -->
+
+<!-- BEGIN_INCLUDE(nebulent-dynamodb:batch-write) -->
+    <nebulent-dynamodb:batch-write />
+<!-- END_INCLUDE(nebulent-dynamodb:batch-write) -->
+
 <!-- BEGIN_INCLUDE(nebulent-dynamodb:marshal-into-objects) -->
-    <nebulent-dynamodb:marshal-into-objects type="" itemAttributes="" />
+    <nebulent-dynamodb:marshal-into-objects type="" attributes="" />
 <!-- END_INCLUDE(nebulent-dynamodb:marshal-into-objects) -->

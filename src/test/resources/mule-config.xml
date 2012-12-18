@@ -12,29 +12,35 @@
 
 	<flow name="loadTestFlow">
 		<logger message="Flow Started with payload : #[payload]" level="INFO" />
-		<naws:load key="#[payload]" rangeKey="4"
+		<naws:load key="#[payload]" rangeKey="202"
 			recordType="com.nebulent.dynamo.model.DataModel" />
+		<logger message="#[payload.class] -- #[payload]" level="INFO" />
+	</flow>
+
+	<flow name="batchLoadTestFlow">
+		<logger message="Flow Started with payload : #[payload]" level="INFO" />
+		<naws:batch-load />
 		<logger message="#[payload.class] -- #[payload]" level="INFO" />
 	</flow>
 
 	<flow name="queryTestFlow">
 		<logger message="Flow Started with payload : #[payload]" level="INFO" />
 		<naws:query
-			expression="hashKey:6cea519d-8e3e-4559-842c-d8302eb46446, rangeKey:eq(4)"
+			expression="hashKey:d28d7c60-d522-4ca5-bdd1-eb1b995174b7, rangeKey:>=(4)"
 			startKey-ref="#[payload]" limit="1" recordType="com.nebulent.dynamo.model.DataModel" />
 		<logger message="#[payload.class] -- #[payload]" level="INFO" />
 	</flow>
 
 	<flow name="scanTestFlow">
 		<logger message="Flow Started with payload : #[payload]" level="INFO" />
-		<naws:scan expression="rangeID:eq(1)" limit="1"
+		<naws:scan expression="rangeID:>(1)" limit="1"
 			recordType="com.nebulent.dynamo.model.DataModel" />
 		<logger message="#[payload.class] -- #[payload]" level="INFO" />
 	</flow>
 
 	<flow name="countTestFlow">
 		<logger message="Flow Started with payload : #[payload]" level="INFO" />
-		<naws:count expression="hashKey:#[payload], rangeKey:eq(4)"
+		<naws:count queryExpression="hashKey:#[payload], rangeKey:eq(4)"
 			recordType="com.nebulent.dynamo.model.DataModel" />
 		<logger message="#[payload.class] -- #[payload]" level="INFO" />
 	</flow>
@@ -45,15 +51,36 @@
 		<logger message="#[payload.class] -- #[payload]" level="INFO" />
 	</flow>
 
+	<flow name="batchSaveTestFlow">
+		<logger message="Flow Started with payload : #[payload]" level="INFO" />
+		<naws:batch-save />
+		<logger message="#[payload.class] -- #[payload]" level="INFO" />
+	</flow>
+
 	<flow name="deleteTestFlow">
 		<logger message="Flow Started with payload : #[payload]" level="INFO" />
 		<naws:delete />
 		<logger message="#[payload.class] -- #[payload]" level="INFO" />
 	</flow>
 
-	<!-- <flow name="marshalTestFlow"> <logger message="Flow Started with payload 
-		: #[payload]" level="INFO" /> <naws:marshal-into-objects type="com.nebulent.dynamo.model.DataModel" 
-		item-attributes="#[payload]" /> <logger message="#[payload.class] #[payload]" 
-		level="INFO" /> </flow> -->
+	<flow name="batchDeleteTestFlow">
+		<logger message="Flow Started with payload : #[payload]" level="INFO" />
+		<naws:batch-delete />
+		<logger message="#[payload.class] -- #[payload]" level="INFO" />
+	</flow>
+
+	<flow name="batchWriteTestFlow">
+		<logger message="Flow Started with payload : #[payload]" level="INFO" />
+		<naws:batch-write write-ref="#[variable:itemsToSave]"
+			delete-ref="#[variable:itemsToDelete]" />
+		<logger message="#[payload.class] -- #[payload]" level="INFO" />
+	</flow>
+
+	<flow name="marshalTestFlow">
+		<logger message="Flow Started with payload #[payload]" level="INFO" />
+		<naws:marshall-into-objects type="com.nebulent.dynamo.model.DataModel"
+			attributes-ref="#[payload]" />
+		<logger message="#[payload.class] #[payload]" level="INFO" />
+	</flow>
 
 </mule>

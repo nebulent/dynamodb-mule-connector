@@ -52,5 +52,16 @@ public class DataModel {
 		return "DataModel [PassKeyID=" + PassKeyID + ", rangeID=" + rangeID
 				+ ", message=" + message + "]";
 	}
+	public DataModel(String passKeyID, Double rangeID) {
+		super();
+		PassKeyID = passKeyID;
+		this.rangeID = rangeID;
+	}
+	public DataModel(Double rangeID) {
+		super();
+		this.rangeID = rangeID;
+	}
+	
+	
 	
 }

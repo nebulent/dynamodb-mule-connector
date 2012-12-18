@@ -5,8 +5,10 @@ package com.nebulent;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.mule.api.MuleEvent;
 import org.mule.construct.Flow;
@@ -16,11 +18,13 @@ import org.springframework.util.Assert;
 
 import org.junit.Test;
 
+import com.amazonaws.services.dynamodb.datamodeling.KeyPair;
 import com.amazonaws.services.dynamodb.datamodeling.PaginatedQueryList;
 import com.amazonaws.services.dynamodb.datamodeling.PaginatedScanList;
 import com.amazonaws.services.dynamodb.model.AttributeValue;
 import com.amazonaws.services.dynamodb.model.Key;
 import com.nebulent.dynamo.model.DataModel;
+import com.nebulent.dynamo.model.TestTable;
 
 public class DynamoConnectorTest extends FunctionalTestCase {
 	@Override
@@ -30,33 +34,184 @@ public class DynamoConnectorTest extends FunctionalTestCase {
 
 	@Test
 	public void testFlow() throws Exception {
-		/*loadTestFlow();
+
+		loadTestFlow();
+		System.out
+				.println("===============================================================================");
 		queryTestFlow();
+		System.out
+				.println("===============================================================================");
 		scanTestFlow();
-		countTestFlow();*/
+		System.out
+				.println("===============================================================================");
+		countTestFlow();
+		System.out
+				.println("===============================================================================");
 		saveTestFlow();
-		/*deleteTestFlow();*/
-		/*marshalTestFlow();*/
+		System.out
+				.println("===============================================================================");
+		deleteTestFlow();
+		System.out
+				.println("===============================================================================");
+
+		marshalTestFlow();
+		System.out
+				.println("===============================================================================");
+
+		batchLoadTest();
+		System.out
+				.println("===============================================================================");
+		batchSaveTest();
+		System.out
+				.println("===============================================================================");
+		batchDeleteTest();
+		System.out
+				.println("===============================================================================");
+		batchWriteTest();
+		System.out
+				.println("===============================================================================");
 	}
-	
+
+	public void batchWriteTest() throws Exception {
+		System.out.println("testing batchWrite() ");
+		Flow flow = lookupFlowConstruct("batchWriteTestFlow");
+
+		MuleEvent event = null;
+		MuleEvent responseEvent = null;
+		List<DataModel> itemsToSave = new ArrayList<DataModel>();
+		List<DataModel> itemsToDelete = new ArrayList<DataModel>();
+		for (int i = 200; i <= 205; i++) {
+			itemsToSave.add(new DataModel((double) i));
+		}
+		itemsToDelete.add(new DataModel("d30d1ad5-1364-4e3b-af75-3d0251b39dc6",
+				500.4000000000001));
+		itemsToDelete.add(new DataModel("54d27daf-1431-4e81-a50a-b69584e258f5",
+				500.60000000000014));
+		itemsToDelete.add(new DataModel("3b940af9-e597-413f-abbc-2b1b18b0a5db",
+				500.5000000000001));
+
+		event = AbstractMuleTestCase.getTestEvent("some shit");
+		event.setFlowVariable("itemsToSave", itemsToSave);
+		event.setFlowVariable("itemsToDelete", new ArrayList<DataModel>());
+		System.out
+				.println("Array:itemsToSave::::::::" + itemsToSave.toString());
+		System.out.println("Array:itemsToDelete::::::::"
+				+ itemsToDelete.toString());
+		System.out.println("flow variable ::::::::::::"
+				+ event.getFlowVariable("itemsToSave").toString());
+		System.out.println("flowvasiable :::::::::::::"
+				+ event.getFlowVariable("itemsToDelete").toString());
+		responseEvent = flow.process(event);
+		System.out.println(responseEvent.getMessage().getPayload());
+	}
+
+	public void batchDeleteTest() throws Exception {
+		System.out.println("testing batchDelete() ");
+		Flow flow = lookupFlowConstruct("batchDeleteTestFlow");
+
+		MuleEvent event = null;
+		MuleEvent responseEvent = null;
+		List<DataModel> messages = new ArrayList<DataModel>();
+		DataModel message;
+		message = new DataModel();
+		message.setPassKeyID("9b9e4276-e858-4b22-8e9b-7b6015897992");
+		message.setRangeID(500.4000000000001);
+		messages.add(message);
+		message = new DataModel();
+		message.setPassKeyID("7ee8895a-2a2c-44c7-9483-82fdcb365540");
+		message.setRangeID(500.9000000000002);
+		messages.add(message);
+		event = AbstractMuleTestCase.getTestEvent(messages);
+		responseEvent = flow.process(event);
+		System.out.println(responseEvent.getMessage().getPayload());
+	}
+
+	public void batchSaveTest() throws Exception {
+
+		System.out.println("testing batchSave() ");
+		Flow flow = lookupFlowConstruct("batchSaveTestFlow");
+
+		MuleEvent event = null;
+		MuleEvent responseEvent = null;
+		List<DataModel> messages = new ArrayList<DataModel>();
+		DataModel message;
+		for (double i = 500.0; i <= 501; i += 0.1) {
+			message = new DataModel();
+			message.setRangeID(i);
+			messages.add(message);
+		}
+		event = AbstractMuleTestCase.getTestEvent(messages);
+		responseEvent = flow.process(event);
+		System.out.println(responseEvent.getMessage().getPayload());
+	}
+
+	public void batchLoadTest() throws Exception {
+		System.out.println("testing batchLoad() ");
+		Flow flow = lookupFlowConstruct("batchLoadTestFlow");
+
+		MuleEvent event = null;
+		MuleEvent responseEvent = null;
+		Map<String, List<KeyPair>> itemsToGet = new HashMap<String, List<KeyPair>>();
+		List<KeyPair> dataModelKeys = new ArrayList<KeyPair>();
+		KeyPair key = new KeyPair();
+		key.setHashKey("6cea519d-8e3e-4559-842c-d8302eb46446");
+		key.setRangeKey((double) 4);
+		dataModelKeys.add(key);
+		key = new KeyPair();
+		key.setHashKey("6fc086c4-224e-4416-9513-76a8b18b8859");
+		key.setRangeKey((double) 1);
+		dataModelKeys.add(key);
+		itemsToGet.put("com.nebulent.dynamo.model.DataModel", dataModelKeys);
+		List<KeyPair> testTableKeys = new ArrayList<KeyPair>();
+		key = new KeyPair();
+		key.setHashKey("sdvsdf-fhjnfdsf-ddfrgdndsdf");
+		key.setRangeKey("2001");
+		testTableKeys.add(key);
+		key = new KeyPair();
+		key.setHashKey("2ad39932-cde9-4575-bef7-b0dcec6bafcd");
+		key.setRangeKey("2002");
+		testTableKeys.add(key);
+		itemsToGet.put("com.nebulent.dynamo.model.TestTable", testTableKeys);
+
+		event = AbstractMuleTestCase.getTestEvent(itemsToGet);
+		responseEvent = flow.process(event);
+		System.out
+				.println("-----------------------------------------------------------");
+		System.out.println(responseEvent.getMessage().getPayload());
+		Map<String, List<Object>> records = (Map<String, List<Object>>) responseEvent
+				.getMessage().getPayload();
+		Assert.notEmpty(records);
+		Iterator iterator = records.entrySet().iterator();
+		while (iterator.hasNext()) {
+			Map.Entry<String, List<Object>> entry = (Entry<String, List<Object>>) iterator
+					.next();
+			System.out.println(entry.getKey());
+			for (Object obj : entry.getValue()) {
+				System.out.println(obj.toString());
+			}
+		}
+		System.out
+				.println("-----------------------------------------------------------");
+	}
+
 	public void marshalTestFlow() throws Exception {
 		System.out.println("testing marshalIntoObjects() ");
 		Flow flow = lookupFlowConstruct("marshalTestFlow");
 		MuleEvent event = null;
 		MuleEvent responseEvent = null;
-		
-		List<Map<String,AttributeValue>> itemAttributes = new ArrayList<Map<String,AttributeValue>>();
-		Map<String,AttributeValue> attribute = new HashMap<String, AttributeValue>();
+
+		List<Map<String, AttributeValue>> itemAttributes = new ArrayList<Map<String, AttributeValue>>();
+		Map<String, AttributeValue> attribute = new HashMap<String, AttributeValue>();
 		attribute.put("rangeID", new AttributeValue().withN("12.54"));
-		attribute.put("PassKeyID", new AttributeValue().withS("d03033ed-be1a-488e-b831-06433dcaafcb"));
+		attribute.put("PassKeyID", new AttributeValue()
+				.withS("d03033ed-be1a-488e-b831-06433dcaafcb"));
 		attribute.put("message", new AttributeValue().withS("message...."));
 		itemAttributes.add(attribute);
-		event = AbstractMuleTestCase
-				.getTestEvent(itemAttributes);
-			responseEvent = flow.process(event);
-			Assert.notEmpty((List) responseEvent.getMessage().getPayload());
+		event = AbstractMuleTestCase.getTestEvent(itemAttributes);
+		responseEvent = flow.process(event);
+		Assert.notEmpty((List) responseEvent.getMessage().getPayload());
 	}
-	
+
 	public void deleteTestFlow() throws Exception {
 		System.out.println("testing delete() ");
 		Flow flow = lookupFlowConstruct("deleteTestFlow");
@@ -64,34 +219,38 @@ public class DynamoConnectorTest extends FunctionalTestCase {
 		MuleEvent responseEvent = null;
 		DataModel model = new DataModel();
 		model.setPassKeyID("225a1b38-2fa6-474c-890f-c6f2baf18b15");
-		model.setRangeID((double)1);
-		event = AbstractMuleTestCase
-				.getTestEvent(model);
-		try{
+		model.setRangeID((double) 1);
+		event = AbstractMuleTestCase.getTestEvent(model);
+		try {
 			responseEvent = flow.process(event);
-		} catch(Exception ex) {
+		} catch (Exception ex) {
 			System.out.println(ex.getMessage());
 		}
 	}
-	
+
 	public void saveTestFlow() throws Exception {
 		System.out.println("testing save() ");
 		Flow flow = lookupFlowConstruct("saveTestFlow");
 		MuleEvent event = null;
 		MuleEvent responseEvent = null;
-		DataModel model = new DataModel();
-		model.setPassKeyID("aaaaaaaaaa-aaaaaaa-aaaaaaaaa-aaaaaa");
-		model.setRangeID((double)10);
-		event = AbstractMuleTestCase
-				.getTestEvent(model);
-		try{
+		/*
+		 * DataModel model = new DataModel();
+		 * model.setPassKeyID("aaaaaaaaaa-aaaaaaa-aaaaaaaaa-aaaaaa");
+		 * model.setRangeID((double)10);
+		 */
+		TestTable model = new TestTable();
+		model.setHashKey("sdvsdf-fhjnfdsf-ddfrgdndsdf");
+		model.setRangeKey("2003");
+		model.setMessage("test");
+		event = AbstractMuleTestCase.getTestEvent(model);
+		try {
 			responseEvent = flow.process(event);
-		} catch(Exception ex) {
+		} catch (Exception ex) {
 			System.out.println(ex.getMessage());
 		}
-		
+
 	}
-	
+
 	public void countTestFlow() throws Exception {
 		System.out.println("testing count() ");
 		Flow flow = lookupFlowConstruct("countTestFlow");
@@ -107,14 +266,14 @@ public class DynamoConnectorTest extends FunctionalTestCase {
 		System.out
 				.println("-----------------------------------------------------------");
 	}
-	
+
 	public void loadTestFlow() throws Exception {
 		System.out.println("testing load() ");
 		Flow flow = lookupFlowConstruct("loadTestFlow");
 		MuleEvent event = null;
 		MuleEvent responseEvent = null;
 		event = AbstractMuleTestCase
-				.getTestEvent("6cea519d-8e3e-4559-842c-d8302eb46446");
+				.getTestEvent("d28d7c60-d522-4ca5-bdd1-eb1b995174b7");
 		responseEvent = flow.process(event);
 		Assert.notNull(responseEvent.getMessage().getPayload());
 		System.out
@@ -139,9 +298,10 @@ public class DynamoConnectorTest extends FunctionalTestCase {
 		System.out
 				.println("-----------------------------------------------------------");
 		System.out.println(responseEvent.getMessage().getPayload());
-		PaginatedQueryList<DataModel> records = (PaginatedQueryList<DataModel>) responseEvent.getMessage().getPayload();
+		PaginatedQueryList<DataModel> records = (PaginatedQueryList<DataModel>) responseEvent
+				.getMessage().getPayload();
 		Assert.notEmpty(records);
-		for(DataModel record:records) {
+		for (DataModel record : records) {
 			System.out.println(record);
 		}
 		System.out
@@ -163,15 +323,16 @@ public class DynamoConnectorTest extends FunctionalTestCase {
 		System.out
 				.println("-----------------------------------------------------------");
 		System.out.println(responseEvent.getMessage().getPayload());
-		PaginatedScanList<DataModel> records = (PaginatedScanList<DataModel>) responseEvent.getMessage().getPayload();
+		PaginatedScanList<DataModel> records = (PaginatedScanList<DataModel>) responseEvent
+				.getMessage().getPayload();
 		Assert.notEmpty(records);
-		for(DataModel record:records) {
+		for (DataModel record : records) {
 			System.out.println(record);
 		}
 		System.out
 				.println("-----------------------------------------------------------");
 	}
-	
+
 	/**
 	 * Retrieve a flow by name from the registry
 	 * 
